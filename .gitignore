@@ -1,0 +1,6 @@
+__pycache__/
+venv/
+*.pyc
+upcoming_match_results.json
+removed_markets.log
+.env
