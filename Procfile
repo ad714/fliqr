@@ -1,0 +1,1 @@
+worker: python fliq_match_result_watcher.py
