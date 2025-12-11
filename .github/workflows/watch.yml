@@ -1,0 +1,30 @@
+name: fliq-match-watcher
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: install deps
+        run: python -m pip install --upgrade pip && pip install requests python-dotenv
+
+      - name: run watcher (single-run)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          API_BASE: https://auto-question.fliq.one/question
+          REFERRAL_CODE: aD6VfTQkAW
+        run: |
+          python fliq_match_result_cron.py
