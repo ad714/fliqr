@@ -1,16 +1,30 @@
 name: fliq-match-watcher
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fliq-match-watcher
+  cancel-in-progress: true
 
 jobs:
   watch:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - name: checkout
         uses: actions/checkout@v4
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -18,7 +32,9 @@ jobs:
           python-version: "3.10"
 
       - name: install deps
-        run: python -m pip install --upgrade pip && pip install requests python-dotenv
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv
 
       - name: run watcher (single-run)
         env:
@@ -26,5 +42,19 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           API_BASE: https://auto-question.fliq.one/question
           REFERRAL_CODE: aD6VfTQkAW
+          MATCHES_FILE: upcoming_match_results.json
+          REMOVED_LOG_PATH: removed_markets.log
+          POLL_INTERVAL_SECONDS: "900"
+          VALIDATION_INTERVAL_SECONDS: "86400"
         run: |
-          python fliq_match_result_cron.py
+          set -e
+          python fliq_match_result_cron.py || true
+
+      - name: Upload snapshot artifact (if exists)
+        uses: actions/upload-artifact@v4
+        with:
+          name: fliq-snapshot
+          path: |
+            upcoming_match_results.json
+            removed_markets.log
+          if-no-files-found: warn
